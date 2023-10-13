@@ -21,7 +21,7 @@ async function createReaction(req ,res){
     }
     catch (error){
         console.log(error);
-        res.status(500).json({error: 'Error al crear la reaccion.'});
+        res.status(500).json({error: 'La reaccion ya ha sido registrada, no puede registrar mas de una vez.'});
     }
 }
 

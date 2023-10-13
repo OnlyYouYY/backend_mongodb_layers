@@ -15,7 +15,8 @@ async function createReaction(userData){
     try{
         const existingReaction = await User.findOne({ip: userData.ip});
         if(existingReaction){
-            throw new Error('Su reaccion ya ha sido registrada.');
+            const errorMessage = "Su reaccion ya ha sido registrada.";
+            throw new Error(errorMessage);
         }
 
         const newReaction = new User(userData);
