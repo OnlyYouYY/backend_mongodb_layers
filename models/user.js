@@ -26,6 +26,14 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     required: true,
   },
+  couple: {
+    type: Boolean,
+    required: true,
+  },
+  gender: {
+    type: String,
+    required: true,
+  },
 });
 
 const User = mongoose.model('User', userSchema);
