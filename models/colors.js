@@ -3,11 +3,11 @@ const mongoose = require('mongoose');
 const colorSchema = new mongoose.Schema({
     code: {
         type: String,
-        require: true
+        required: true
     },
     name: {
         type: String,
-        require: true
+        required: true
     }
 });
 

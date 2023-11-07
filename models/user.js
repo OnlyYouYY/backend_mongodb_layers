@@ -4,7 +4,6 @@ const userSchema = new mongoose.Schema({
   ip: {
     type: String,
     required: true,
-    unique: true,
   },
   date: {
     type: Date,
