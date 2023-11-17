@@ -9,6 +9,7 @@ const app = express();
 const userRoutes = require('./routes/user.routes.js');
 const colorRoutes = require('./routes/color.routes.js');
 const messageRoutes = require('./routes/message.routes.js');
+const knowledgeRoutes = require('./routes/knowledge.routes.js');
 
 //Middlewares
 
@@ -19,6 +20,7 @@ app.use(express.json());
 app.use('/api/reactions', userRoutes);
 app.use("/api/colors", colorRoutes);
 app.use("/api/messages", messageRoutes);
+app.use("/api/knowledge", knowledgeRoutes)
 
 
 const PORT = process.env.PORT || 3000;
