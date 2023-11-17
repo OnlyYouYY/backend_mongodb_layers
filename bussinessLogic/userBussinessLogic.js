@@ -1,5 +1,6 @@
 const User = require("../models/user.js");
 
+
 async function getAllReactions() {
   try {
     const reactions = await User.find();

@@ -1,0 +1,74 @@
+color1,color2,message,couple,reaction,result
+Rojo,Violeta,positive,true,false,triste
+Rojo,Amarillo,positive,true,false,triste
+Rojo,Añil,positive,true,false,triste
+Rojo,Naranja,positive,true,false,triste
+Rojo,Azul,positive,true,false,triste
+Rojo,Verde,negative,true,false,feliz
+Rojo,Violeta,negative,true,false,feliz
+Rojo,Amarillo,negative,true,false,feliz
+Rojo,Añil,negative,true,false,feliz
+Rojo,Naranja,negative,true,false,feliz
+Rojo,Azul,negative,true,false,feliz
+Rojo,Verde,positive,false,false,feliz
+Rojo,Violeta,positive,false,false,feliz
+Rojo,Amarillo,positive,false,false,feliz
+Rojo,Añil,positive,false,false,feliz
+Rojo,Naranja,positive,false,false,feliz
+Rojo,Azul,positive,false,false,feliz
+Rojo,Verde,negative,false,false,feliz
+Rojo,Violeta,negative,false,false,feliz
+Rojo,Amarillo,negative,false,false,feliz
+Rojo,Añil,negative,false,false,feliz
+Rojo,Naranja,negative,false,false,feliz
+Rojo,Azul,negative,false,false,feliz
+Amarillo,Violeta,positive,true,false,feliz
+Amarillo,Añil,positive,true,false,feliz
+Amarillo,Naranja,positive,true,false,feliz
+Amarillo,Azul,positive,true,false,feliz
+Amarillo,Verde,negative,true,false,triste
+Amarillo,Violeta,negative,true,false,triste
+Amarillo,Añil,negative,true,false,triste
+Amarillo,Naranja,negative,true,false,triste
+Amarillo,Azul,negative,true,false,triste
+Amarillo,Verde,positive,false,false,triste
+Amarillo,Violeta,positive,false,false,triste
+Amarillo,Añil,positive,false,false,triste
+Amarillo,Naranja,positive,false,false,triste
+Amarillo,Azul,positive,false,false,triste
+Amarillo,Verde,negative,false,false,triste
+Amarillo,Violeta,negative,false,false,triste
+Amarillo,Añil,negative,false,false,triste
+Amarillo,Naranja,negative,false,false,triste
+Amarillo,Azul,negative,false,false,triste
+Verde,Añil,positive,true,false,feliz
+Verde,Naranja,positive,true,false,feliz
+Verde,Azul,positive,true,false,feliz
+Verde,Amarillo,negative,true,false,triste
+Verde,Violeta,negative,true,false,triste
+Verde,Añil,negative,true,false,triste
+Verde,Naranja,negative,true,false,triste
+Verde,Azul,negative,true,false,triste
+Amarillo, Rojo, positive, false, false, feliz
+Azul, Amarillo, positive, true, false, feliz
+Azul, Rojo, positive, true, true, triste
+Naranja, Amarillo, negative, false, false, triste
+Rojo, Amarillo, negative, false, true, feliz
+Rojo, Azul, positive, false, false, triste
+Rojo, Naranja, positive, true, true, feliz
+Verde, Amarillo, negative, true, false, triste
+Verde, Azul, positive, false, false, feliz
+Violeta, Amarillo, negative, true, false, feliz
+color1,color2,message,couple,reaction,result
+Amarillo,Verde,positive,false,false,feliz
+Azul,Verde,positive,true,false,feliz
+Amarillo,Violeta,positive,true,false,feliz
+Rojo,Verde,negative,true,false,feliz
+Añil,Verde,positive,true,false,feliz
+Naranja,Azul,negative,true,false,triste
+Rojo,Azul,negative,true,false,feliz
+Añil,Amarillo,negative,true,false,triste
+Rojo,Amarillo,positive,false,false,feliz
+Violeta,Azul,negative,false,false,triste
+Rojo,Naranja,positive,true,false,feliz
+

@@ -6,5 +6,7 @@ router.get('/', UserController.getAllReactions);
 
 router.post('/createReaction', UserController.createReaction);
 
+router.get('/newModel', UserController.getNewUsers);
+
 
 module.exports = router;
