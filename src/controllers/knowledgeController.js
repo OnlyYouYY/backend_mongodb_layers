@@ -3,7 +3,7 @@ const knowledgeBussinessLogic = require('../../bussinessLogic/knowledgeBussiness
 async function importDataFromCSV(req, res) {
     try {
         console.log(req.file);
-        const file = req.file; // Suponiendo que el path del archivo CSV es enviado en el cuerpo de la solicitud
+        const file = req.file;
 
         if (!file) {
             return res.status(400).json({ error: "Se requiere la ruta del archivo CSV." });

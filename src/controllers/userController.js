@@ -33,18 +33,15 @@ async function createReaction(req, res) {
 
 async function getNewUsers(req, res) {
     try {
-        // Obtén los usuarios de la base de datos
+
         const users = await User.find();
 
-        // Mapea cada usuario y reemplaza los campos requeridos
         const replacedUsers = await Promise.all(users.map(async (user) => {
             const { textColor, textBackground, reaction } = user;
 
-            // Busca el color por código en el modelo Color
             const textColorObj = await Color.findOne({ code: textColor });
             const textBackgroundObj = await Color.findOne({ code: textBackground });
 
-            // Construye un nuevo objeto de usuario con los campos reemplazados
             return {
                 ...user.toObject(),
                 textColor: textColorObj ? textColorObj.name : textColor,
@@ -52,17 +49,14 @@ async function getNewUsers(req, res) {
             };
         }));
 
-        // Inicializa un objeto para almacenar las estadísticas
         const knowledgeStats = {
             Feliz: 0,
             Infeliz: 0,
         };
 
-        // Itera sobre cada usuario reemplazado y compara con la colección Knowledge
         for (const user of replacedUsers) {
             const { textColor, textBackground, couple, reaction } = user;
 
-            // Realiza la consulta en la colección Knowledge para verificar coincidencias
             const knowledgeEntry = await Knowledge.findOne({
                 color1: textColor,
                 color2: textBackground,
@@ -70,14 +64,12 @@ async function getNewUsers(req, res) {
                 reaction: reaction,
             });
 
-            // Actualiza las estadísticas según el resultado de la comparación
             if (knowledgeEntry) {
                 knowledgeStats.Feliz += knowledgeEntry.result === 'Feliz' ? 1 : 0;
                 knowledgeStats.Infeliz += knowledgeEntry.result === 'Infeliz' ? 1 : 0;
             }
         }
 
-        // Agrega el total de usuarios analizados y la información reemplazada a la respuesta
         res.json({ totalUsers: replacedUsers.length, knowledgeStats });
     } catch (error) {
         console.error(error);
@@ -87,18 +79,15 @@ async function getNewUsers(req, res) {
 
 async function getUsersByStatus(req, res) {
     try {
-        // Obtén los usuarios de la base de datos
+
         const users = await User.find();
 
-        // Mapea cada usuario y reemplaza los campos requeridos
         const replacedUsers = await Promise.all(users.map(async (user) => {
             const { textColor, textBackground, reaction, couple } = user;
 
-            // Busca el color por código en el modelo Color
             const textColorObj = await Color.findOne({ code: textColor });
             const textBackgroundObj = await Color.findOne({ code: textBackground });
 
-            // Construye un nuevo objeto de usuario con los campos reemplazados
             return {
                 ...user.toObject(),
                 textColor: textColorObj ? textColorObj.name : textColor,
@@ -106,7 +95,6 @@ async function getUsersByStatus(req, res) {
             };
         }));
 
-        // Inicializa un objeto para almacenar las estadísticas
         const statusStats = {
             'Con Pareja (Feliz)': 0,
             'Con Pareja (Infeliz)': 0,
@@ -114,11 +102,9 @@ async function getUsersByStatus(req, res) {
             'Sin Pareja (Infeliz)': 0,
         };
 
-        // Itera sobre cada usuario reemplazado y compara con la colección Knowledge
         for (const user of replacedUsers) {
             const { textColor, textBackground, couple, reaction } = user;
 
-            // Realiza la consulta en la colección Knowledge para verificar coincidencias
             const knowledgeEntry = await Knowledge.findOne({
                 color1: textColor,
                 color2: textBackground,
@@ -126,17 +112,14 @@ async function getUsersByStatus(req, res) {
                 reaction: reaction,
             });
 
-            // Actualiza las estadísticas según el resultado de la comparación
             if (knowledgeEntry) {
                 const statusKey = `${couple ? 'Con Pareja' : 'Sin Pareja'} (${knowledgeEntry.result})`;
                 statusStats[statusKey]++;
             }
         }
 
-        // Calcula el total de usuarios analizados
         const totalUsers = replacedUsers.length;
 
-        // Calcula los porcentajes y agrega la propiedad al objeto de estadísticas
         const statusStatsWithPercentage = {};
         Object.keys(statusStats).forEach((key) => {
             statusStatsWithPercentage[key] = {
@@ -145,16 +128,12 @@ async function getUsersByStatus(req, res) {
             };
         });
 
-        // Agrega el total de usuarios analizados y la información reemplazada a la respuesta
         res.json({ totalUsers, statusStats: statusStatsWithPercentage, replacedUsers });
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: 'Error al obtener los usuarios con campos reemplazados.' });
     }
 }
-
-
-
 
 
 

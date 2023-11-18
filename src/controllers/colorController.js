@@ -102,7 +102,7 @@ function hexToRgb(hex) {
 
 function determineColorMixture(aporteValue, threshold = 10) {
     const sumToColor1 = aporteValue.r + aporteValue.g + aporteValue.b;
-    const sumToColor2 = 3 * 255 - sumToColor1; // La suma total de las diferencias respecto a 255
+    const sumToColor2 = 3 * 255 - sumToColor1;
 
     if (Math.abs(sumToColor1 - sumToColor2) <= threshold) {
         return 'Indeterminado';
@@ -114,10 +114,9 @@ function determineColorMixture(aporteValue, threshold = 10) {
 
 async function averageColor(req, res){
     try {
-        // Obtiene todos los usuarios de la base de datos
+
         const users = await User.find();
 
-        // Realiza la operación para cada par de colores
         const mixtureResults = users.map((user) => {
             const { textColor, textBackground } = user;
 
