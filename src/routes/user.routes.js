@@ -8,5 +8,7 @@ router.post('/createReaction', UserController.createReaction);
 
 router.get('/newModel', UserController.getNewUsers);
 
+router.get('/newModel2', UserController.getUsersByStatus);
+
 
 module.exports = router;

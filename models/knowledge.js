@@ -9,10 +9,6 @@ const knowledgeSchema = new mongoose.Schema({
         type: String,
         required: true,
     },
-    message: {
-        type: String,
-        required: true,
-    },
     couple: {
         type: Boolean,
         required: true,

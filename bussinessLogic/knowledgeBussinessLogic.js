@@ -12,7 +12,7 @@ async function importDataFromCSV(csvFilePath) {
             .pipe(csv())
             .on('data', (row) => {
 
-                if (!row.color1 || !row.color2 || !row.message || !row.couple || !row.reaction || !row.result) {
+                if (!row.color1 || !row.color2 || !row.couple || !row.reaction || !row.result) {
                     console.error('Error: Todos los campos son requeridos.');
                     return;
                 }
@@ -20,7 +20,6 @@ async function importDataFromCSV(csvFilePath) {
                 const knowledgeData = {
                     color1: row.color1,
                     color2: row.color2,
-                    message: row.message,
                     couple: row.couple,
                     reaction: row.reaction,
                     result: row.result,
