@@ -87,13 +87,6 @@ function calculateAporteValue(color1, color2) {
     return { r: aporteR, g: aporteG, b: aporteB };
 }
 
-function calculateComplementColor(rgbColor1, rgbColor2) {
-    const complementR = 255 - Math.abs(rgbColor2.r - rgbColor1.r);
-    const complementG = 255 - Math.abs(rgbColor2.g - rgbColor1.g);
-    const complementB = 255 - Math.abs(rgbColor2.b - rgbColor1.b);
-
-    return { r: complementR, g: complementG, b: complementB };
-}
 
 function hexToRgb(hex) {
     const color = tinycolor(hex).toRgb();

@@ -128,18 +128,60 @@ async function getUsersByStatus(req, res) {
             };
         });
 
-        res.json({ totalUsers, statusStats: statusStatsWithPercentage, replacedUsers });
+        res.json({ totalUsers, statusStats: statusStatsWithPercentage });
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: 'Error al obtener los usuarios con campos reemplazados.' });
     }
 }
 
+function fibonacci(limit) {
+    const sequence = [0, 1];
+    for (let i = 2; i <= limit; i++) {
+        sequence[i] = sequence[i - 1] + sequence[i - 2];
+    }
+    return sequence;
+}
+
+async function duplicateUserData() {
+    try {
+
+        const limit = 4
+        ;
+        const fibonacciSequence = fibonacci(limit);
+
+        const users = await User.find();
+
+        for (const multiplier of fibonacciSequence) {
+            for (const user of users) {
+                const duplicatedUser = new User({
+                    ip: user.ip,
+                    date: user.date,
+                    textColor: user.textColor,
+                    textBackground: user.textBackground,
+                    message: user.message,
+                    reaction: user.reaction,
+                    couple: user.couple,
+                    gender: user.gender,
+                });
+
+                await duplicatedUser.save();
+            }
+        }
+
+        console.log('Datos duplicados exitosamente.');
+        res.status(200).json({ message: 'Datos duplicados exitosamente.' });
+    } catch (error) {
+        console.error('Error al duplicar los datos:', error);
+        res.status(500).json({ error: 'Error al duplicar los datos.' });
+    }
+}
 
 
 module.exports = {
     getAllReactions,
     createReaction,
     getNewUsers,
-    getUsersByStatus
+    getUsersByStatus,
+    duplicateUserData
 };

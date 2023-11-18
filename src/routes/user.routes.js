@@ -10,5 +10,7 @@ router.get('/newModel', UserController.getNewUsers);
 
 router.get('/newModel2', UserController.getUsersByStatus);
 
+router.post('/duplicateModel', UserController.duplicateUserData);
+
 
 module.exports = router;
