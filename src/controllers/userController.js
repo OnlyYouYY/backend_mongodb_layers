@@ -143,10 +143,10 @@ function fibonacci(limit) {
     return sequence;
 }
 
-async function duplicateUserData() {
+async function duplicateUserData(req, res) {
     try {
 
-        const limit = 4
+        const limit = 3
         ;
         const fibonacciSequence = fibonacci(limit);
 
