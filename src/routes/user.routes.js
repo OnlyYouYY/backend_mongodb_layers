@@ -12,5 +12,9 @@ router.get('/newModel2', UserController.getUsersByStatus);
 
 router.post('/duplicateModel', UserController.duplicateUserData);
 
+router.get('/conteoDatosFechaHora', UserController.getHourlyData);
+
+router.get('/predicted', UserController.predicted);
+
 
 module.exports = router;

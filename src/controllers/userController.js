@@ -3,6 +3,8 @@ const User = require("../../models/user.js");
 const Color = require("../../models/colors.js");
 const Message = require("../../models/message.js");
 const Knowledge = require("../../models/knowledge.js");
+const regression = require('ml-regression');
+const tf = require('@tensorflow/tfjs-node');
 
 async function getAllReactions(req, res) {
     try {
@@ -177,11 +179,163 @@ async function duplicateUserData(req, res) {
     }
 }
 
+async function getHourlyData(req, res) {
+    try {
+
+        const latestDateEntry = await User.findOne({}, { date: 1 }, { sort: { date: -1 } });
+
+        if (!latestDateEntry) {
+            return res.json({ maxRegisteredHours: [] });
+        }
+
+        const latestDate = latestDateEntry.date;
+
+        const startDate = new Date(latestDate);
+        startDate.setDate(startDate.getDate() - 8);
+
+        const usersWithinRange = await User.find({
+            date: { $gte: startDate, $lte: latestDate },
+        }).sort({ date: 1 });
+
+        const maxRegisteredHourMap = new Map();
+
+        usersWithinRange.forEach(user => {
+            const date = new Date(user.date);
+
+            date.setHours(date.getHours() + 4);
+
+            const hora = date.getHours();
+            const fecha = `${date.getFullYear()}-${('0' + (date.getMonth() + 1)).slice(-2)}-${('0' + date.getDate()).slice(-2)}`;
+
+            if (!maxRegisteredHourMap.has(fecha) || maxRegisteredHourMap.get(fecha).count < maxRegisteredHourMap.get(fecha).count) {
+                maxRegisteredHourMap.set(fecha, { hora, count: 1 });
+            } else {
+                maxRegisteredHourMap.get(fecha).count += 1;
+            }
+        });
+
+        const maxRegisteredHours = [...maxRegisteredHourMap].map(([fecha, { hora, count }]) => {
+            return { fecha, hora, "Total registrados": count };
+        });
+
+        res.json({ maxRegisteredHours });
+    } catch (error) {
+        console.error('Error:', error);
+        res.status(500).json({ error: 'Error al encontrar la hora con más registros por día.' });
+    }
+}
+
+async function calculateMaxRegisteredHours() {
+    try {
+        // Encuentra la última fecha de un dato registrado
+        const latestDateEntry = await User.findOne({}, { date: 1 }, { sort: { date: -1 } });
+
+        // Si no hay datos, retorna un objeto con un arreglo vacío
+        if (!latestDateEntry) {
+            return { maxRegisteredHours: [] };
+        }
+
+        // Obtiene la fecha más reciente
+        const latestDate = latestDateEntry.date;
+
+        // Calcula la fecha de inicio (5 días antes de la última fecha)
+        const startDate = new Date(latestDate);
+        startDate.setDate(startDate.getDate() - 6);
+
+        // Encuentra los usuarios con fechas dentro del rango especificado y ordénalos por fecha
+        const usersWithinRange = await User.find({
+            date: { $gte: startDate, $lte: latestDate },
+        }).sort({ date: 1 });
+
+        // Mapa para almacenar la hora con más registros por día
+        const maxRegisteredHourMap = new Map();
+
+        // Itera sobre los usuarios y encuentra la hora con más registros para cada día
+        usersWithinRange.forEach(user => {
+            const date = new Date(user.date);
+
+            // Ajusta la hora según tu desfase de zona horaria
+            date.setHours(date.getHours() + 4);
+
+            const hora = date.getHours();
+            const fecha = `${date.getFullYear()}-${('0' + (date.getMonth() + 1)).slice(-2)}-${('0' + date.getDate()).slice(-2)}`;
+
+            // Verifica si la hora ya está en el mapa y actualiza si tiene más registros
+            if (!maxRegisteredHourMap.has(fecha) || maxRegisteredHourMap.get(fecha).count < maxRegisteredHourMap.get(fecha).count) {
+                maxRegisteredHourMap.set(fecha, { hora, count: 1 });
+            } else {
+                maxRegisteredHourMap.get(fecha).count += 1;
+            }
+        });
+
+        // Convierte el mapa a un arreglo de objetos para la respuesta
+        const maxRegisteredHours = [...maxRegisteredHourMap].map(([fecha, { hora, count }]) => {
+            return { fecha, hora, "Total registrados": count };
+        });
+
+        // Retorna el resultado con la hora con más registros por día
+        return { maxRegisteredHours };
+    } catch (error) {
+        console.error('Error:', error);
+        // Retorna un objeto con un arreglo vacío en caso de error
+        return { maxRegisteredHours: [] };
+    }
+}
+
+
+function generarDatosEntrenamiento(cantidad) {
+    const datos = [];
+    for (let i = 0; i < cantidad; i++) {
+        const x = Math.random() * 10;
+        const y = 2 * x + 1 + Math.random();
+        datos.push({ x, y });
+    }
+    return datos;
+}
+
+async function predicted(req, res){
+    try {
+        const datosEntrenamiento = generarDatosEntrenamiento(100);
+
+        
+        const tensoresX = tf.tensor2d(datosEntrenamiento.map(dato => dato.x), [datosEntrenamiento.length, 1]);
+        const tensoresY = tf.tensor2d(datosEntrenamiento.map(dato => dato.y), [datosEntrenamiento.length, 1]);
+
+        
+        const modelo = tf.sequential();
+        modelo.add(tf.layers.dense({ units: 1, inputShape: [1] }));
+        modelo.compile({ optimizer: 'sgd', loss: 'meanSquaredError' });
+        modelo.fit(tensoresX, tensoresY, { epochs: 100 })
+            .then(info => {
+                console.log('Entrenamiento completado');
+            });
+
+        
+        const cantidadPredicciones = 3;
+        const prediccionesAleatorias = [];
+        for (let i = 0; i < cantidadPredicciones; i++) {
+            const xPrediccion = Math.random() * 10;
+            const yPrediccion = modelo.predict(tf.tensor2d([xPrediccion], [1, 1])).dataSync()[0];
+            prediccionesAleatorias.push({ x: xPrediccion, y: yPrediccion });
+        }
+
+        res.json({ datosEntrenamiento, prediccionesAleatorias });
+    } catch (error) {
+        console.error('Error:', error);
+        res.status(500).json({ error: 'Error al entrenar el modelo.' });
+    }
+}
+
+
+
+
 
 module.exports = {
     getAllReactions,
     createReaction,
     getNewUsers,
     getUsersByStatus,
-    duplicateUserData
+    duplicateUserData,
+    getHourlyData,
+    predicted
 };
