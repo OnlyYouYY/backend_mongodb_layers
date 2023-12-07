@@ -5,6 +5,8 @@ const Message = require("../../models/message.js");
 const Knowledge = require("../../models/knowledge.js");
 const regression = require('ml-regression');
 const tf = require('@tensorflow/tfjs-node');
+const MarkovChain = require('markovchain');
+
 
 async function getAllReactions(req, res) {
     try {
@@ -283,43 +285,70 @@ async function calculateMaxRegisteredHours() {
 }
 
 
-function generarDatosEntrenamiento(cantidad) {
-    const datos = [];
-    for (let i = 0; i < cantidad; i++) {
-        const x = Math.random() * 10;
-        const y = 2 * x + 1 + Math.random();
-        datos.push({ x, y });
+async function obtenerDatosEntrenamientoNeuronal() {
+    try {
+        // Consultar registros de la base de datos
+        const registros = await User.find({}, 'date');
+
+        // Contar la cantidad de registros por día
+        const conteoPorDia = {};
+        registros.forEach(registro => {
+            const fecha = registro.date.toISOString().split('T')[0]; // Obtener la fecha en formato 'YYYY-MM-DD'
+            conteoPorDia[fecha] = (conteoPorDia[fecha] || 0) + 1;
+        });
+
+        // Convertir los datos a un formato adecuado para el modelo
+        const datosEntrenamiento = [];
+        Object.keys(conteoPorDia).forEach((fecha, index) => {
+            const x = index + 1; // Días representados como números enteros
+            const y = conteoPorDia[fecha];
+            datosEntrenamiento.push({ x, y });
+        });
+
+        return datosEntrenamiento;
+    } catch (error) {
+        console.error('Error al obtener datos de entrenamiento:', error);
+        return [];
     }
-    return datos;
 }
 
-async function predicted(req, res){
+async function predicted(req, res) {
     try {
-        const datosEntrenamiento = generarDatosEntrenamiento(100);
+        const datosEntrenamiento = await obtenerDatosEntrenamientoNeuronal();
 
-        
-        const tensoresX = tf.tensor2d(datosEntrenamiento.map(dato => dato.x), [datosEntrenamiento.length, 1]);
-        const tensoresY = tf.tensor2d(datosEntrenamiento.map(dato => dato.y), [datosEntrenamiento.length, 1]);
+        // Normalizar datos de entrada (solo para ejemplo, ajusta según sea necesario)
+        const maxValorY = Math.max(...datosEntrenamiento.map(dato => dato.y));
+        const datosNormalizados = datosEntrenamiento.map(dato => ({ x: dato.x, y: dato.y / maxValorY }));
 
-        
+        const tensoresY = tf.tensor2d(datosNormalizados.map(dato => dato.y), [datosNormalizados.length, 1]);
+
         const modelo = tf.sequential();
-        modelo.add(tf.layers.dense({ units: 1, inputShape: [1] }));
-        modelo.compile({ optimizer: 'sgd', loss: 'meanSquaredError' });
-        modelo.fit(tensoresX, tensoresY, { epochs: 100 })
-            .then(info => {
-                console.log('Entrenamiento completado');
-            });
+        modelo.add(tf.layers.dense({ units: 1, inputShape: [1], activation: 'linear' }));
+        modelo.compile({ optimizer: tf.train.adam(), loss: 'meanSquaredError' });
 
-        
-        const cantidadPredicciones = 3;
-        const prediccionesAleatorias = [];
+        // Ajustar la tasa de aprendizaje según sea necesario
+        const historiaEntrenamiento = await modelo.fit(tensoresY, tensoresY, {
+            epochs: 100, learningRate: 0.01, callbacks: {
+                onEpochEnd: (epoch, logs) => {
+                    console.log(`Epoch ${epoch + 1} / 100 - loss: ${logs.loss}`);
+                },
+            }
+        });
+
+        const cantidadPredicciones = 5;
+        const prediccionesBasadasEnY = [];
+        let entradaPrediccion = tensoresY.slice([tensoresY.shape[0] - 1, 0], [1, tensoresY.shape[1]]); // Utiliza la última entrada para empezar
+
         for (let i = 0; i < cantidadPredicciones; i++) {
-            const xPrediccion = Math.random() * 10;
-            const yPrediccion = modelo.predict(tf.tensor2d([xPrediccion], [1, 1])).dataSync()[0];
-            prediccionesAleatorias.push({ x: xPrediccion, y: yPrediccion });
+            const yPrediccionNormalizada = modelo.predict(entradaPrediccion).dataSync()[0];
+            const yPrediccion = yPrediccionNormalizada * maxValorY; // Desnormalizar la predicción
+            prediccionesBasadasEnY.push({ x: datosEntrenamiento.length + i + 1, y: yPrediccion });
+
+            // Actualiza la entrada para la siguiente predicción
+            entradaPrediccion = tf.tensor2d([yPrediccion / maxValorY], [1, 1]);
         }
 
-        res.json({ datosEntrenamiento, prediccionesAleatorias });
+        res.json({ datosEntrenamiento, prediccionesBasadasEnY, historiaEntrenamiento });
     } catch (error) {
         console.error('Error:', error);
         res.status(500).json({ error: 'Error al entrenar el modelo.' });
@@ -327,6 +356,280 @@ async function predicted(req, res){
 }
 
 
+
+//Cadenas de markov
+
+async function obtenerDatosEntrenamiento2() {
+    try {
+        const registros = await User.find({}, 'date');
+        const estados = clasificarDias(registros);
+        return estados;
+    } catch (error) {
+        console.error('Error al obtener datos de entrenamiento:', error);
+        return [];
+    }
+}
+
+function clasificarDias(registros) {
+    const estados = [];
+
+    registros.forEach(registro => {
+        const fecha = registro.date.toISOString().split('T')[0];
+        const estadoExistente = estados.find(estado => estado.fecha === fecha);
+
+        if (estadoExistente) {
+            estadoExistente.cantidadPersonas++;
+        } else {
+            const nuevoEstado = {
+                fecha,
+                cantidadPersonas: 1,
+            };
+            estados.push(nuevoEstado);
+        }
+    });
+
+    estados.forEach(estado => {
+        if (estado.cantidadPersonas < 10) {
+            estado.estado = 'Bajo tráfico';
+        } else if (estado.cantidadPersonas >= 10 && estado.cantidadPersonas <= 30) {
+            estado.estado = 'Tráfico moderado';
+        } else {
+            estado.estado = 'Alto tráfico';
+        }
+    });
+
+    return estados;
+}
+
+function construirCadenaMarkov(estados) {
+    const matrizTransicion = {};
+
+    for (let i = 0; i < estados.length - 1; i++) {
+        const estadoActual = estados[i].estado;
+        const estadoSiguiente = estados[i + 1].estado;
+
+        if (!matrizTransicion[estadoActual]) {
+            matrizTransicion[estadoActual] = {};
+        }
+
+        if (!matrizTransicion[estadoActual][estadoSiguiente]) {
+            matrizTransicion[estadoActual][estadoSiguiente] = 1;
+        } else {
+            matrizTransicion[estadoActual][estadoSiguiente]++;
+        }
+    }
+
+    // Normalizar las transiciones
+    Object.keys(matrizTransicion).forEach(estado => {
+        const totalTransiciones = Object.values(matrizTransicion[estado]).reduce((acc, count) => acc + count, 0);
+        Object.keys(matrizTransicion[estado]).forEach(sigEstado => {
+            matrizTransicion[estado][sigEstado] /= totalTransiciones;
+        });
+    });
+
+    return matrizTransicion;
+}
+
+function predecirConCadenaMarkov(matrizTransicion, estadoInicial, pasos) {
+    let estadoActual = estadoInicial;
+    const predicciones = [{ x: 1, estado: estadoInicial }];
+
+    for (let paso = 0; paso < pasos; paso++) {
+        const transiciones = matrizTransicion[estadoActual];
+
+        if (transiciones) {
+            const estadosPosibles = Object.keys(transiciones);
+            const probabilidadAleatoria = Math.random();
+            let acumuladorProbabilidades = 0;
+
+            for (let i = 0; i < estadosPosibles.length; i++) {
+                const sigEstado = estadosPosibles[i];
+                acumuladorProbabilidades += transiciones[sigEstado];
+
+                if (probabilidadAleatoria <= acumuladorProbabilidades) {
+                    estadoActual = sigEstado;
+                    predicciones.push({ x: predicciones.length + 1, estado: estadoActual });
+                    break;
+                }
+            }
+        } else {
+            break;
+        }
+    }
+
+    return predicciones;
+}
+
+async function construirCadenaMarkovMain(req, res) {
+    try {
+        const estados = await obtenerDatosEntrenamiento2();
+        const matrizTransicion = construirCadenaMarkov(estados);
+
+        const estadoInicial = estados[estados.length - 1].estado;
+        const pasos = 5; // Puedes ajustar la cantidad de pasos según sea necesario
+
+        const prediccionesMarkov = predecirConCadenaMarkov(matrizTransicion, estadoInicial, pasos);
+
+        res.json({ estados, prediccionesMarkov });
+    } catch (error) {
+        console.error('Error:', error);
+    }
+}
+
+/*mongo
+//Redes Bayesianas
+
+async function obtenerDatosEntrenamiento() {
+    try {
+        const registros = await User.find({}, 'date');
+        const estados = clasificarDias2(registros);
+        return estados;
+    } catch (error) {
+        console.error('Error al obtener datos de entrenamiento:', error);
+        return [];
+    }
+}
+
+function clasificarDias2(registros) {
+    const estados = [];
+
+    registros.forEach(registro => {
+        const fecha = registro.date.toISOString().split('T')[0];
+        const estadoExistente = estados.find(estado => estado.fecha === fecha);
+
+        if (estadoExistente) {
+            estadoExistente.cantidadPersonas++;
+        } else {
+            const nuevoEstado = {
+                fecha,
+                cantidadPersonas: 1,
+            };
+            estados.push(nuevoEstado);
+        }
+    });
+
+    estados.forEach(estado => {
+        if (estado.cantidadPersonas < 10) {
+            estado.estado = 'Bajo tráfico';
+        } else if (estado.cantidadPersonas >= 10 && estado.cantidadPersonas <= 30) {
+            estado.estado = 'Tráfico moderado';
+        } else {
+            estado.estado = 'Alto tráfico';
+        }
+    });
+
+    return estados;
+}
+
+function construirRedBayesiana(estados) {
+    const redBayesiana = {};
+
+    // Definir variables relevantes para la red bayesiana
+    const variables = ['diaSemana', 'estacionAnio', 'esFestivo', 'cantidadPersonas'];
+
+    // Construir nodos y relaciones en la red bayesiana
+    variables.forEach(variable => {
+        redBayesiana[variable] = {
+            padre: [], // Nodos padres
+            probabilidad: {}, // Tabla de probabilidad condicional
+        };
+    });
+
+    // Asignar relaciones y probabilidades condicionales
+    estados.forEach(estado => {
+        // Simplemente como ejemplo, podrías asignar relaciones basadas en el día de la semana
+        const diaSemana = obtenerDiaSemana(estado.fecha);
+
+        redBayesiana['diaSemana'].padre.push('cantidadPersonas');
+        redBayesiana['diaSemana'].probabilidad[diaSemana] = redBayesiana['diaSemana'].probabilidad[diaSemana] || {};
+        redBayesiana['diaSemana'].probabilidad[diaSemana][estado.estado] = (redBayesiana['diaSemana'].probabilidad[diaSemana][estado.estado] || 0) + 1;
+    });
+
+    // Normalizar las probabilidades condicionales
+    variables.forEach(variable => {
+        if (redBayesiana[variable].padre.length > 0) {
+            redBayesiana[variable].padre.forEach(padre => {
+                const probabilidadPadre = redBayesiana[variable].probabilidad[padre];
+
+                if (probabilidadPadre) {
+                    const sum = Object.values(probabilidadPadre).reduce((acc, val) => acc + val, 0);
+
+                    if (sum !== 0) {
+                        Object.keys(probabilidadPadre).forEach(val => {
+                            redBayesiana[variable].probabilidad[padre][val] /= sum;
+                        });
+                    }
+                }
+            });
+        }
+    });
+
+    return redBayesiana;
+}
+
+
+function obtenerDiaSemana(fecha) {
+    const diasSemana = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+    const fechaObj = new Date(fecha);
+    const diaSemana = diasSemana[fechaObj.getDay()];
+    return diaSemana;
+}
+
+function predecirConRedBayesiana(redBayesiana, fecha) {
+    const diaSemana = obtenerDiaSemana(fecha);
+
+    // Inicializar evidencia con el día de la semana
+    const evidencia = {
+        diaSemana,
+    };
+
+    // Realizar inferencia bayesiana para estimar la cantidad de personas
+    const predicciones = inferenciaBayesiana(redBayesiana, evidencia, 'cantidadPersonas');
+
+    console.log({ evidencia, predicciones });
+}
+
+function inferenciaBayesiana(redBayesiana, evidencia, variableObjetivo) {
+    const predicciones = {};
+
+    // Calcular la probabilidad marginal de la variable objetivo
+    Object.keys(redBayesiana[variableObjetivo].probabilidad).forEach(valor => {
+        let probabilidad = 1;
+
+        // Multiplicar las probabilidades condicionales
+        redBayesiana[variableObjetivo].padre.forEach(padre => {
+            const valorPadre = evidencia[padre];
+            probabilidad *= redBayesiana[variableObjetivo].probabilidad[padre][valorPadre] || 0;
+        });
+
+        // Multiplicar por la probabilidad de la variable objetivo dada la evidencia
+        probabilidad *= redBayesiana[variableObjetivo].probabilidad[valor][evidencia[variableObjetivo]] || 0;
+
+        predicciones[valor] = probabilidad;
+    });
+
+    // Normalizar las predicciones
+    const sumProbabilidades = Object.values(predicciones).reduce((acc, val) => acc + val, 0);
+    Object.keys(predicciones).forEach(valor => {
+        predicciones[valor] /= sumProbabilidades;
+    });
+
+    return predicciones;
+}
+
+async function redesBayesianasMain(req, res) {
+    try {
+        const estados = await obtenerDatosEntrenamiento();
+        const redBayesiana = construirRedBayesiana(estados);
+
+        const fecha = '2023-08-12'; // Reemplaza con la fecha para la que quieres hacer la predicción
+
+        res.json(predecirConRedBayesiana(redBayesiana, fecha));
+    } catch (error) {
+        console.error('Error:', error);
+    }
+}
+*/
 
 
 
@@ -337,5 +640,7 @@ module.exports = {
     getUsersByStatus,
     duplicateUserData,
     getHourlyData,
-    predicted
+    predicted,
+    construirCadenaMarkovMain,
+    //redesBayesianasMain
 };

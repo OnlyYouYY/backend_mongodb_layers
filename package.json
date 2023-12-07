@@ -7,10 +7,12 @@
   "dependencies": {
     "@tensorflow/tfjs": "^4.14.0",
     "@tensorflow/tfjs-node": "^4.14.0",
+    "bayesjs": "^0.6.5",
     "cors": "^2.8.5",
     "csv-parser": "^3.0.0",
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
+    "markovchain": "^1.0.2",
     "ml-regression": "^5.0.0",
     "mongoose": "^7.6.1",
     "morgan": "^1.10.0",

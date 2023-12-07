@@ -16,5 +16,9 @@ router.get('/conteoDatosFechaHora', UserController.getHourlyData);
 
 router.get('/predicted', UserController.predicted);
 
+router.get('/predictedmarkov', UserController.construirCadenaMarkovMain);
+
+//router.get('/predictedBayesianas', UserController.redesBayesianasMain);
+
 
 module.exports = router;
